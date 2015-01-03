@@ -61,39 +61,20 @@ FilmDex::~FilmDex()
 }
 
 void FilmDex::findForTag(QString tag) {
-    int tag_id = 0;
     QStringList locations;
-    QSqlQuery query = self->db.exec(QString("SELECT id FROM keywords WHERE word = \"%1\";").arg(tag));
-    if(query.lastError().type() != QSqlError::NoError) {
-        self->mb.setText(query.lastError().text());
-        self->mb.exec();
-    } else if(query.next()) {
-        tag_id = query.value(0).toInt();
-    }
-
-    if(!tag_id)
-        return;
-
-    query = self->db.exec(QString("SELECT page FROM page_tags WHERE tag = %1;").arg(tag_id));
+    QSqlQuery query = self->db.exec(QString("SELECT year,month,page FROM pages WHERE id IN (SELECT page FROM page_tags WHERE tag = (SELECT id FROM keywords WHERE word = \"%1\"));").arg(tag));
     if(query.lastError().type() != QSqlError::NoError) {
         self->mb.setText(query.lastError().text());
         self->mb.exec();
     } else {
         while(query.next()) {
-            int page_id = query.value(0).toInt();
-            QSqlQuery entry = self->db.exec(QString("SELECT year, month, page FROM pages WHERE id = %1;").arg(page_id));
-            if (entry.lastError().type() != QSqlError::NoError) {
-                self->mb.setText(entry.lastError().text());
-                self->mb.exec();
-            } else if(entry.next()) {
-                int year, page;
-                QString month;
-                year = entry.value(0).toInt();
-                month = entry.value(1).toString();
-                page = entry.value(2).toInt();
-                QString line = QString("%1 %2, page %3").arg(month).arg(year).arg(page);
-                locations << line;
-            }
+            int year, page;
+            QString month;
+            year = query.value(0).toInt();
+            month = query.value(1).toString();
+            page = query.value(2).toInt();
+            QString line = QString("%1 %2, page %3").arg(month).arg(year).arg(page);
+            locations << line;
         }
     }
     ui->PageList->clear();
